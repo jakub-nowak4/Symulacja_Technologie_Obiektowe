@@ -1,5 +1,7 @@
 package lab3.core;
 
+import lab3.core.memento.PersonSnapshot;
+import lab3.core.memento.SimulationMemento;
 import lab3.core.view.PersonView;
 import lab3.core.view.WorldView;
 
@@ -25,14 +27,16 @@ import java.util.Map;
  * drawn length. The list of people is always sorted by id, so the run depends on the seed only.
  */
 public final class Simulation implements SimulationEngine {
-    private final SimulationConfig config;
     private final Rng rng;
-    private final BoundaryPolicy boundary;
-    private final EntryPolicy entry;
-    private final InfectionPolicy infectionPolicy;
     private final ContactTracker contacts;
-
     private final List<Person> persons;
+
+    // replaced together when a memento with another configuration is restored
+    private SimulationConfig config;
+    private BoundaryPolicy boundary;
+    private EntryPolicy entry;
+    private InfectionPolicy infectionPolicy;
+
     private long tick;
     private int nextPersonId;
 
@@ -48,9 +52,19 @@ public final class Simulation implements SimulationEngine {
     }
 
     /**
-     * Builds a simulation in a given situation. Used by tests now and, later, to restore a memento.
+     * Creates a simulation that continues where the memento was taken, driven by a {@link SplitMix64Rng}
+     * (the memento holds its state). Used to load a memento that comes from a file.
+     */
+    public static Simulation fromMemento(SimulationMemento memento) {
+        Simulation simulation = new Simulation(memento.config(), new SplitMix64Rng(0), new ArrayList<>(), 0, 0);
+        simulation.restore(memento);
+        return simulation;
+    }
+
+    /**
+     * Builds a simulation in a given situation. Used by tests.
      *
-     * @param persons      people sorted by ascending id; the list is taken over
+     * @param persons      people sorted by ascending id; the list is copied
      * @param tick         ticks elapsed so far
      * @param nextPersonId id the next entering person gets; greater than every id in {@code persons}
      */
@@ -71,13 +85,10 @@ public final class Simulation implements SimulationEngine {
         if (nextPersonId <= previousId) {
             throw new IllegalArgumentException("nextPersonId must be greater than every person id");
         }
-        this.config = config;
         this.rng = rng;
-        this.boundary = new BoundaryPolicy(new Area(config.areaWidth(), config.areaHeight()));
-        this.entry = new EntryPolicy(config);
-        this.infectionPolicy = new InfectionPolicy(config);
         this.contacts = new ContactTracker();
-        this.persons = persons;
+        this.persons = new ArrayList<>(persons);
+        useConfig(config);
         this.tick = tick;
         this.nextPersonId = nextPersonId;
     }
@@ -100,6 +111,39 @@ public final class Simulation implements SimulationEngine {
             views.add(person.view());
         }
         return new WorldView(tick, config.areaWidth(), config.areaHeight(), views);
+    }
+
+    @Override
+    public SimulationMemento createMemento() {
+        List<PersonSnapshot> snapshots = new ArrayList<>(persons.size());
+        for (Person person : persons) {
+            snapshots.add(PersonSnapshot.of(person));
+        }
+        return new SimulationMemento(config, tick, rng.state(), nextPersonId, snapshots, contacts.snapshot());
+    }
+
+    @Override
+    public void restore(SimulationMemento memento) {
+        // the memento is already validated; people are built first, so nothing is half-restored
+        List<Person> restored = new ArrayList<>(memento.persons().size());
+        for (PersonSnapshot snapshot : memento.persons()) {
+            restored.add(snapshot.toPerson());
+        }
+
+        useConfig(memento.config());
+        persons.clear();
+        persons.addAll(restored);
+        contacts.restore(memento.contacts());
+        rng.setState(memento.rngState());
+        tick = memento.tick();
+        nextPersonId = memento.nextPersonId();
+    }
+
+    private void useConfig(SimulationConfig newConfig) {
+        this.config = newConfig;
+        this.boundary = new BoundaryPolicy(new Area(newConfig.areaWidth(), newConfig.areaHeight()));
+        this.entry = new EntryPolicy(newConfig);
+        this.infectionPolicy = new InfectionPolicy(newConfig);
     }
 
     private void moveAndCheckBorder() {

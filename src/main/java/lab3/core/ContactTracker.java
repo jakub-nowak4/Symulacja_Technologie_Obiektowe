@@ -1,5 +1,6 @@
 package lab3.core;
 
+import lab3.core.memento.ContactSnapshot;
 import lab3.vectors.Vector2D;
 
 import java.util.ArrayList;
@@ -83,6 +84,31 @@ public final class ContactTracker {
         }
         contacts = next;
         return infections;
+    }
+
+    /** Copies the contacts in progress, sorted by (target id, source id). */
+    public List<ContactSnapshot> snapshot() {
+        List<ContactSnapshot> result = new ArrayList<>(contacts.size());
+        for (Map.Entry<Long, Contact> entry : contacts.entrySet()) {
+            long key = entry.getKey();
+            Contact contact = entry.getValue();
+            result.add(new ContactSnapshot((int) (key >>> 32), (int) key, contact.ticks, contact.drawn));
+        }
+        return result;
+    }
+
+    /** Replaces the contacts in progress with the given ones. */
+    public void restore(List<ContactSnapshot> snapshot) {
+        Map<Long, Contact> restored = new TreeMap<>();
+        for (ContactSnapshot item : snapshot) {
+            Contact contact = new Contact();
+            contact.ticks = item.ticks();
+            contact.drawn = item.drawn();
+            if (restored.put(pairKey(item.targetId(), item.sourceId()), contact) != null) {
+                throw new IllegalArgumentException("duplicate contact " + item.targetId() + " / " + item.sourceId());
+            }
+        }
+        contacts = restored;
     }
 
     private static boolean inContact(Person a, Person b) {
