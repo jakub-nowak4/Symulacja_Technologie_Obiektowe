@@ -111,6 +111,7 @@ class ArchitectureTest {
     @Test
     void drawingHelpersDoNotUseJavaFx() {
         assertEquals(List.of(), scan("lab3/ui/draw", DRAW_RULES));
+        assertEquals(List.of(), scan("lab3/ui/run", DRAW_RULES));
     }
 
     @Test
