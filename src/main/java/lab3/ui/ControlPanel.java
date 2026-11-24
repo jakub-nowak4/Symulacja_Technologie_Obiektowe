@@ -94,7 +94,6 @@ public final class ControlPanel extends VBox {
         restart.setOnAction(e -> restart());
 
         getChildren().addAll(
-                new Label("Sterowanie"),
                 new HBox(8, startPause, step),
                 new HBox(8, new Label("Prędkość:"), speed),
                 new Separator(),

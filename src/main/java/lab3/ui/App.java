@@ -6,9 +6,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
@@ -17,8 +20,8 @@ import lab3.ui.draw.HealthPalette;
 import lab3.ui.run.RunSettings;
 
 /**
- * The main window: the picture of the world in the middle, controls and legend on the right and
- * the time and the number of people at the bottom.
+ * The main window: the picture of the world in the middle, on the right two tabs (controls and
+ * mementos) above the legend, and the time and the number of people at the bottom.
  */
 public final class App extends Application {
     private SimulationController controller;
@@ -52,7 +55,13 @@ public final class App extends Application {
         }
         legend.getChildren().add(contactRadius);
 
-        VBox side = new VBox(new ControlPanel(controller), new Separator(), legend);
+        TabPane tabs = new TabPane(
+                new Tab("Sterowanie", new ControlPanel(controller)),
+                new Tab("Pamiątki", new SnapshotPanel(controller)));
+        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        VBox.setVgrow(tabs, Priority.ALWAYS);
+
+        VBox side = new VBox(tabs, new Separator(), legend);
         side.setPrefWidth(290);
 
         BorderPane root = new BorderPane();

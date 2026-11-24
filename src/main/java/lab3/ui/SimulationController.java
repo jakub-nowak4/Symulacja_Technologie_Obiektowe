@@ -5,9 +5,11 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import lab3.core.Simulation;
 import lab3.core.SimulationEngine;
+import lab3.core.memento.SimulationMemento;
 import lab3.core.view.WorldView;
 import lab3.ui.run.Playback;
 import lab3.ui.run.RunSettings;
+import lab3.ui.run.Snapshots;
 
 import java.util.function.Consumer;
 
@@ -26,7 +28,10 @@ public final class SimulationController {
     private final AnimationTimer timer;
 
     private SimulationEngine engine;
+    private Snapshots snapshots;
     private RunSettings settings;
+    private boolean autoSnapshots;
+    private Runnable snapshotListener = () -> { };
     private long lastFrameNanos;
 
     /** Creates a controller with a new simulation made from the given settings; shows it at once. */
@@ -46,6 +51,8 @@ public final class SimulationController {
         pause();
         this.settings = newSettings;
         this.engine = Simulation.withSeed(newSettings.config(), newSettings.seed());
+        this.snapshots = new Snapshots(engine);
+        snapshots.setAutoEnabled(autoSnapshots);
         publish();
     }
 
@@ -71,6 +78,7 @@ public final class SimulationController {
             return;
         }
         engine.step();
+        snapshots.afterStep();
         publish();
     }
 
@@ -91,14 +99,51 @@ public final class SimulationController {
         return settings;
     }
 
-    /** The simulation itself, for the parts of the window that save and restore it. */
-    SimulationEngine engine() {
-        return engine;
+    /** The mementos of the simulation that is running now; a new simulation has its own, empty ones. */
+    public Snapshots snapshots() {
+        return snapshots;
     }
 
-    /** Draws the current state again, for example after a memento has been restored. */
-    void publish() {
+    /** Takes a memento of the simulation as it is now. */
+    public Snapshots.Item takeSnapshot() {
+        Snapshots.Item item = snapshots.takeManual();
+        publish();
+        return item;
+    }
+
+    /** Keeps a memento read from a file (it is not restored until the user asks). */
+    public Snapshots.Item addSnapshot(SimulationMemento memento) {
+        Snapshots.Item item = snapshots.addManual(memento);
+        publish();
+        return item;
+    }
+
+    /** Sends the simulation back to the moment of the memento and draws it. */
+    public void restoreSnapshot(Snapshots.Item item) {
+        snapshots.restore(item);
+        publish();
+    }
+
+    /** Whether a memento is taken at every whole second of simulated time; it stays so for new simulations. */
+    public void setAutoSnapshots(boolean enabled) {
+        autoSnapshots = enabled;
+        snapshots.setAutoEnabled(enabled);
+        publish();
+    }
+
+    public boolean autoSnapshots() {
+        return autoSnapshots;
+    }
+
+    /** Called after every redraw, so that the list of mementos can follow the simulation. */
+    public void setSnapshotListener(Runnable listener) {
+        this.snapshotListener = listener;
+        listener.run();
+    }
+
+    private void publish() {
         viewListener.accept(engine.view());
+        snapshotListener.run();
     }
 
     private void onFrame(long now) {
@@ -111,6 +156,7 @@ public final class SimulationController {
         if (steps > 0) {
             for (int i = 0; i < steps; i++) {
                 engine.step();
+                snapshots.afterStep();
             }
             publish();
         }
