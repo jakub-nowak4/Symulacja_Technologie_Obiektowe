@@ -46,6 +46,12 @@ class ArchitectureTest {
             Pattern.compile("\\bjavax\\.swing\\."),
             Pattern.compile("\\blab3\\.(ui|cli)\\b"));
 
+    /** Drawing helpers: plain Java that can be tested without a window. */
+    private static final List<Pattern> DRAW_RULES = List.of(
+            Pattern.compile("\\bjavafx\\."),
+            Pattern.compile("\\bjava\\.awt\\."),
+            Pattern.compile("\\bjavax\\.swing\\."));
+
     private static <T> List<T> concat(List<T> a, List<T> b) {
         List<T> result = new ArrayList<>(a);
         result.addAll(b);
@@ -100,6 +106,11 @@ class ArchitectureTest {
     @Test
     void ioDoesNotKnowTheUserInterface() {
         assertEquals(List.of(), scan("lab3/io", IO_RULES));
+    }
+
+    @Test
+    void drawingHelpersDoNotUseJavaFx() {
+        assertEquals(List.of(), scan("lab3/ui/draw", DRAW_RULES));
     }
 
     @Test
