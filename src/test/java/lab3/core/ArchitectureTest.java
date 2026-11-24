@@ -39,6 +39,13 @@ class ArchitectureTest {
     private static final List<Pattern> VECTORS_RULES = concat(COMMON_RULES, List.of(
             Pattern.compile("\\blab3\\.core\\b")));
 
+    /** The file layer may use files, but knows nothing about windows or the command line. */
+    private static final List<Pattern> IO_RULES = List.of(
+            Pattern.compile("\\bjavafx\\."),
+            Pattern.compile("\\bjava\\.awt\\."),
+            Pattern.compile("\\bjavax\\.swing\\."),
+            Pattern.compile("\\blab3\\.(ui|cli)\\b"));
+
     private static <T> List<T> concat(List<T> a, List<T> b) {
         List<T> result = new ArrayList<>(a);
         result.addAll(b);
@@ -88,6 +95,18 @@ class ArchitectureTest {
     @Test
     void vectorsAreIndependentOfCoreAndUi() {
         assertEquals(List.of(), scan("lab3/vectors", VECTORS_RULES));
+    }
+
+    @Test
+    void ioDoesNotKnowTheUserInterface() {
+        assertEquals(List.of(), scan("lab3/io", IO_RULES));
+    }
+
+    @Test
+    void ioRulesAllowFilesButNotUi() {
+        assertEquals(List.of(), violations("import java.nio.file.Files;", IO_RULES));
+        assertEquals(1, violations("import javafx.stage.FileChooser;", IO_RULES).size());
+        assertEquals(1, violations("import lab3.ui.App;", IO_RULES).size());
     }
 
     @Test
