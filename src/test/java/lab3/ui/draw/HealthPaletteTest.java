@@ -1,6 +1,7 @@
 package lab3.ui.draw;
 
 import lab3.core.health.HealthKind;
+import lab3.core.view.Stats;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -45,6 +46,25 @@ class HealthPaletteTest {
         assertTrue(red(symptomatic) > green(symptomatic) && red(symptomatic) > blue(symptomatic), "symptomatic is red");
         assertTrue(red(asymptomatic) > blue(asymptomatic) && green(asymptomatic) > blue(asymptomatic), "asymptomatic is orange");
         assertTrue(blue(immune) > red(immune) && blue(immune) > green(immune), "immune is blue");
+    }
+
+    @Test
+    void colourAsTextHasSixCapitalHexDigits() {
+        assertEquals("#2E9E4F", HealthPalette.hex(HealthKind.HEALTHY));
+        for (HealthKind kind : HealthKind.values()) {
+            assertTrue(HealthPalette.hex(kind).matches("#[0-9A-F]{6}"), kind.toString());
+            assertEquals(HealthPalette.rgb(kind), Integer.parseInt(HealthPalette.hex(kind).substring(1), 16));
+        }
+    }
+
+    @Test
+    void countsAreTakenFromTheRightCategory() {
+        Stats stats = new Stats(1, 2, 3, 4);
+
+        assertEquals(1, HealthPalette.count(stats, HealthKind.HEALTHY));
+        assertEquals(2, HealthPalette.count(stats, HealthKind.INFECTED_ASYMPTOMATIC));
+        assertEquals(3, HealthPalette.count(stats, HealthKind.INFECTED_SYMPTOMATIC));
+        assertEquals(4, HealthPalette.count(stats, HealthKind.IMMUNE));
     }
 
     private static int red(int rgb) {

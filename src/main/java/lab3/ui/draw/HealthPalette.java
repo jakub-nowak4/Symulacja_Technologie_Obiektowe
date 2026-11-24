@@ -1,6 +1,7 @@
 package lab3.ui.draw;
 
 import lab3.core.health.HealthKind;
+import lab3.core.view.Stats;
 
 import java.util.List;
 
@@ -24,6 +25,21 @@ public final class HealthPalette {
             case INFECTED_SYMPTOMATIC -> 0xD62828;  // red
             case INFECTED_ASYMPTOMATIC -> 0xF4A100; // orange
             case IMMUNE -> 0x2F6FDE;                // blue
+        };
+    }
+
+    /** The colour as text for style sheets, for example {@code #2E9E4F}. */
+    public static String hex(HealthKind kind) {
+        return String.format("#%06X", rgb(kind));
+    }
+
+    /** How many people of this category there are in the counts. */
+    public static int count(Stats stats, HealthKind kind) {
+        return switch (kind) {
+            case HEALTHY -> stats.healthy();
+            case INFECTED_ASYMPTOMATIC -> stats.infectedAsymptomatic();
+            case INFECTED_SYMPTOMATIC -> stats.infectedSymptomatic();
+            case IMMUNE -> stats.immune();
         };
     }
 

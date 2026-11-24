@@ -89,7 +89,7 @@ public final class SnapshotPanel extends VBox {
 
         getChildren().addAll(hint, list, take, restore, files, auto, message);
 
-        controller.setSnapshotListener(this::refresh);
+        controller.addRedrawListener(this::refresh);
     }
 
     static String describe(Item item) {

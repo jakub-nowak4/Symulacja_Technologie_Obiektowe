@@ -10,7 +10,12 @@ import lab3.core.view.WorldView;
 import lab3.ui.run.Playback;
 import lab3.ui.run.RunSettings;
 import lab3.ui.run.Snapshots;
+import lab3.ui.run.StatsHistory;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -31,7 +36,9 @@ public final class SimulationController {
     private Snapshots snapshots;
     private RunSettings settings;
     private boolean autoSnapshots;
-    private Runnable snapshotListener = () -> { };
+    private StatsHistory statsHistory;
+    private final Set<Integer> loadedFromFile = new HashSet<>();   // numbers of mementos that were read from a file
+    private final List<Runnable> redrawListeners = new ArrayList<>();
     private long lastFrameNanos;
 
     /** Creates a controller with a new simulation made from the given settings; shows it at once. */
@@ -53,6 +60,8 @@ public final class SimulationController {
         this.engine = Simulation.withSeed(newSettings.config(), newSettings.seed());
         this.snapshots = new Snapshots(engine);
         snapshots.setAutoEnabled(autoSnapshots);
+        this.statsHistory = new StatsHistory();
+        loadedFromFile.clear();
         publish();
     }
 
@@ -114,13 +123,22 @@ public final class SimulationController {
     /** Keeps a memento read from a file (it is not restored until the user asks). */
     public Snapshots.Item addSnapshot(SimulationMemento memento) {
         Snapshots.Item item = snapshots.addManual(memento);
+        loadedFromFile.add(item.number());
         publish();
         return item;
     }
 
-    /** Sends the simulation back to the moment of the memento and draws it. */
+    /**
+     * Sends the simulation back to the moment of the memento and draws it. The chart keeps its way
+     * to that moment (the later part is cut off), except for a memento read from a file: it may
+     * come from another run, so the chart starts again from there.
+     */
     public void restoreSnapshot(Snapshots.Item item) {
+        boolean fromFile = item.kind() == Snapshots.Kind.MANUAL && loadedFromFile.contains(item.number());
         snapshots.restore(item);
+        if (fromFile) {
+            statsHistory.restart(engine.view());
+        }
         publish();
     }
 
@@ -135,15 +153,24 @@ public final class SimulationController {
         return autoSnapshots;
     }
 
-    /** Called after every redraw, so that the list of mementos can follow the simulation. */
-    public void setSnapshotListener(Runnable listener) {
-        this.snapshotListener = listener;
+    /** The counts of the simulation that is running now, one sample per simulated second, for the chart. */
+    public StatsHistory statsHistory() {
+        return statsHistory;
+    }
+
+    /** Adds a listener that is called after every redraw (and once straight away), so that panels can follow the simulation. */
+    public void addRedrawListener(Runnable listener) {
+        redrawListeners.add(listener);
         listener.run();
     }
 
     private void publish() {
-        viewListener.accept(engine.view());
-        snapshotListener.run();
+        WorldView view = engine.view();
+        statsHistory.update(view);
+        viewListener.accept(view);
+        for (Runnable listener : redrawListeners) {
+            listener.run();
+        }
     }
 
     private void onFrame(long now) {
