@@ -92,7 +92,7 @@ class EntryPolicyTest {
 
     @Test
     void nobodyEntersWhenTheDrawIsAboveTheEntryProbability() {
-        EntryPolicy policy = new EntryPolicy(SimulationConfig.noImmunity());   // 1.8 per second = 0.072 per tick
+        EntryPolicy policy = new EntryPolicy(SimulationConfig.noImmunity());   // 1.7 per second = 0.068 per tick
         ScriptedRng rng = new ScriptedRng(0.08);
         AtomicInteger ids = counter();
 
@@ -107,7 +107,7 @@ class EntryPolicyTest {
     void someoneEntersWhenTheDrawIsBelowTheEntryProbability() {
         EntryPolicy policy = new EntryPolicy(SimulationConfig.noImmunity());
         AtomicInteger ids = new AtomicInteger(41);
-        ScriptedRng rng = new ScriptedRng(0.071, 0.05, 0.5, 0.25, 0.9, 0.5);
+        ScriptedRng rng = new ScriptedRng(0.067, 0.05, 0.5, 0.25, 0.9, 0.5);
 
         Person p = policy.maybeEnter(rng, ids::getAndIncrement).orElseThrow();
 
@@ -243,7 +243,7 @@ class EntryPolicyTest {
             }
         }
 
-        assertEquals(0.072, (double) entries / ticks, 0.003);
+        assertEquals(0.068, (double) entries / ticks, 0.003);
     }
 
     @Test

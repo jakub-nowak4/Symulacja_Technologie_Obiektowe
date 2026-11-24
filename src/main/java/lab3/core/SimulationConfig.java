@@ -80,9 +80,15 @@ public record SimulationConfig(
         }
     }
 
-    /** Scenario 1: nobody is immune. */
+    /**
+     * Scenario 1: nobody is immune.
+     *
+     * <p>Calibrated in stage 17 (docs/PLAN.md, section 5): in a 30 x 30 m area, 60 people at the start and
+     * 1.7 entries per second the population stays around 60 (mean 60.8, between 32 and 88 over 30 runs of
+     * 10 minutes) and the infection keeps going without dying out (about 17 infected people at the peak).
+     */
     public static SimulationConfig noImmunity() {
-        return new SimulationConfig(30, 30, 60, 0, 1.8, 0.3, 0.0, 0.5, 0.02, Math.PI / 4, 0.5);
+        return new SimulationConfig(30, 30, 60, 0, 1.7, 0.3, 0.0, 0.5, 0.02, Math.PI / 4, 0.5);
     }
 
     /** Scenario 2: the given share of the initial population and of entering people is immune. */
